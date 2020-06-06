@@ -1,2 +1,13 @@
-# bigcplay
-Use MIDI keyboard to play music in FFXIV with synchronization with your friends.
+# BigCPlay
+本软件用于在FF14中辅助诗人演奏，使用本软件你可以：
+
+- 用Midi键盘弹琴。
+- 用包含6个八度的Midi键盘分别控制两个角色弹琴。
+- 跟队友一起同步听Midi音乐，以便实现合奏。
+
+请勿使用本软件损害他人版权和其他正当权益。因使用本软件造成的任何不良后果和纠纷，本软件概不负责，请用户自担风险。
+
+## 如何使用
+
+用python3以管理员身份运行``gui.py`` 。
+
