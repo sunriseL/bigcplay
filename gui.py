@@ -4,7 +4,7 @@ import os
 from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QVBoxLayout
 from PyQt5.QtWidgets import QLabel, QPushButton, QFileDialog
 from PyQt5.QtWidgets import QMessageBox, QGroupBox, QSpinBox, QProgressBar
-from PyQt5.QtWidgets import QMenu, QCheckBox
+from PyQt5.QtWidgets import QMenu, QCheckBox, QComboBox
 from PyQt5.QtGui import QPixmap, QIcon, QFont
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtCore import QAbstractNativeEventFilter
@@ -73,9 +73,14 @@ class MainWindow(QWidget):
         pb.clicked.connect(self.testKeyMap)
         hbox2.addWidget(pb)
         vbox1.addLayout(hbox2)
+        combob = QComboBox()
+        combob.addItem("默认")
+        combob.addItems(ff14midi.getDevices())
+        combob.currentTextChanged.connect(self.ChooseMidiKeyboardFor0)
         cb = QCheckBox('使用Midi键盘')
         cb.stateChanged.connect(self.useMidiKeyboardFor0)
         vbox1.addWidget(cb)
+        vbox1.addWidget(combob)
         gb.setLayout(vbox1)
         hbox1.addWidget(gb)
         
@@ -88,7 +93,12 @@ class MainWindow(QWidget):
         vbox1.addWidget(pb)
         cb = QCheckBox('使用Midi键盘')
         cb.stateChanged.connect(self.useMidiKeyboardFor1)
+        combob = QComboBox()
+        combob.addItem("默认")
+        combob.addItems(ff14midi.getDevices())
+        combob.currentTextChanged.connect(self.ChooseMidiKeyboardFor1)
         vbox1.addWidget(cb)
+        vbox1.addWidget(combob)
         gb.setLayout(vbox1)
         hbox1.addWidget(gb)
         
@@ -103,6 +113,9 @@ class MainWindow(QWidget):
         vbox1.addWidget(pb)
         pb = QPushButton('双开而且Midi键盘很长')
         pb.clicked.connect(self.useMidiKeybordToTwoGames)
+        vbox1.addWidget(pb)
+        pb = QPushButton('用midi键盘弹琴（支持两个）')
+        pb.clicked.connect(self.useMidiKeybordIndividual)
         vbox1.addWidget(pb)
         pb = QPushButton('直接开始Midi文件')
         pb.setIcon(QIcon(getResourcePath('iconPlay.png')))
@@ -325,6 +338,20 @@ class MainWindow(QWidget):
             return
         _thread.start_new_thread(ff14midi.checkKeyMap, ())
         
+    def useMidiKeybordIndividual(self):
+        if((ff14midi.isPlaying) or (ff14midi.isPerforming)):
+            QMessageBox.warning(self, '正在演奏', '已经在演奏了。')
+            return
+        if ff14midi.sendMidiInput[0] and ff14midi.sendMidiInput[1]:
+            if ff14midi.useMidiDevice[0] == ff14midi.useMidiDevice[1]:
+                _thread.start_new_thread(ff14midi.playMidiInputToTwoGames, ())
+                return
+        if ff14midi.sendMidiInput[0]:
+            _thread.start_new_thread(ff14midi.playMidiInputIndividual, (0,))
+        if ff14midi.sendMidiInput[1]:
+            _thread.start_new_thread(ff14midi.playMidiInputIndividual, (1,))
+
+    
     def useMidiKeybord(self):
         if((ff14midi.isPlaying) or (ff14midi.isPerforming)):
             QMessageBox.warning(self, '正在演奏', '已经在演奏了。')
@@ -339,9 +366,15 @@ class MainWindow(QWidget):
         
     def useMidiKeyboardFor0(self, state):
         ff14midi.sendMidiInput[0] = state == Qt.Checked
+
+    def ChooseMidiKeyboardFor0(self, text):
+        ff14midi.useMidiDevice[0] = text
     
     def useMidiKeyboardFor1(self, state):
         ff14midi.sendMidiInput[1] = state == Qt.Checked
+
+    def ChooseMidiKeyboardFor1(self, text):
+        ff14midi.useMidiDevice[1] = text
         
     def begin(self, mode='', prefixNoteId=0):
         if((ff14midi.isPlaying) or (ff14midi.isPerforming)):

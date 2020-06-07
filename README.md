@@ -12,6 +12,7 @@
 - pywin32
 - mido
 - ntplib
+- python-rtmidi   #使用midi键盘才需要
 ## 如何使用
 
 用python3以管理员身份运行``gui.py`` 。

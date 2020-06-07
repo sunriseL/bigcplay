@@ -24,10 +24,14 @@ progress = 0
 seqLength = 1
 scheduledBeginTime = 0
 sendMidiInput = [False, False]
+useMidiDevice = ['默认', '默认']
 timeToNextNote = 1000000
 
 def log(text):
     print('[' + time.strftime('%H:%M:%S', time.localtime(time.time())) + '] ' + text)
+
+def getDevices():
+    return mido.get_input_names()
 
 def enumWindowCallback(hwnd, lParam):
     global ff14WindowHandle
@@ -194,8 +198,59 @@ def metronomeEcho():
     log('Metronome echo completed.')
     isPlaying = False
 
+def playMidiInputIndividual(index = 0):
+    global isPerforming, terminating, ff14WindowHandle, keyCode, sendMidiInput, useMidiDevice
+    global differentSpacing, minNoteLength, progress, seqLength
+    if(len(ff14WindowHandle) == 0):
+        return
+    terminating = False
+    isPerforming = True
+    log('Started playing from midi device input for Game ' + str(index) + '.')
+    try:
+        if useMidiDevice[index] == '默认':
+             mi = mido.open_input()
+        else:
+            mi = mido.open_input(useMidiDevice[0])
+        pressingKey = 0
+        while(True):
+            if(terminating):
+                break
+            for msg in mi.iter_pending():
+                if((msg.type == 'note_on') and (msg.velocity > 0)):
+                    if((msg.note < 48) or (msg.note > 84)):
+                        continue
+                    key = keyCode[msg.note - 48]
+                    if(pressingKey > 0):
+                        if(sendMidiInput[index]):
+                            keyUp(index, pressingKey)
+                        time.sleep(differentSpacing)
+                    pressingKey = key
+                    if(sendMidiInput[index]):
+                        keyDown(index, key)
+                    time.sleep(minNoteLength)
+                elif((msg.type == 'note_off') or ((msg.type == 'note_off') and (msg.velocity == 0))):
+                    if((msg.note < 48) or (msg.note > 84)):
+                        continue
+                    key = keyCode[msg.note - 48]
+                    if(pressingKey == key):
+                        if(sendMidiInput[index]):
+                            keyUp(index, key)
+                        pressingKey = 0
+                        time.sleep(differentSpacing)
+            time.sleep(0.001)
+        mi.close()
+    except Exception as e:
+        print(e)
+        try:
+            mi.close()
+        except:
+            pass
+    log('Playing midi device input completed.')
+    isPerforming = False
+
+
 def playMidiInput():
-    global isPerforming, terminating, ff14WindowHandle, keyCode, sendMidiInput
+    global isPerforming, terminating, ff14WindowHandle, keyCode, sendMidiInput, useMidiDevice
     global differentSpacing, minNoteLength, progress, seqLength
     if(len(ff14WindowHandle) == 0):
         return
@@ -203,7 +258,10 @@ def playMidiInput():
     isPerforming = True
     log('Started playing from midi device input.')
     try:
-        mi = mido.open_input()
+        if useMidiDevice[0] == '默认':
+             mi = mido.open_input()
+        else:
+            mi = mido.open_input(useMidiDevice[0])
         pressingKey = 0
         while(True):
             if(terminating):
@@ -248,15 +306,19 @@ def playMidiInput():
     isPerforming = False
 
 def playMidiInputToTwoGames():
-    global isPerforming, terminating, ff14WindowHandle, keyCode, sendMidiInput
+    global isPerforming, terminating, ff14WindowHandle, keyCode, sendMidiInput, useMidiDevice
     global differentSpacing, minNoteLength, progress, seqLength
     if(len(ff14WindowHandle) == 0):
         return
     terminating = False
     isPerforming = True
     log('Started splitting midi device input to two game windows.')
+    device = useMidiDevice[0]
     try:
-        mi = mido.open_input()
+        if device == "默认":
+            mi = mido.open_input()
+        else:
+            mi = mido.open_input(device)
         pressingKey = [0, 0]
         while(True):
             if(terminating):
